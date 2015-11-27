@@ -1,4 +1,4 @@
-# ring
+# sv.rpc.ring
 
 Provides remote procedure calls via Ring.
 
