@@ -8,7 +8,7 @@
     (let [msg (:params request)
           get-rpc-fn (:get-rpc-fn config)]
       (if-let [f (get-rpc-fn msg)]
-        (if (fn? f)
+        (if (or (fn? f) (and (var? f) (fn? (var-get f))))
           (let [args (:args msg)]
             (try
               (let [result (apply f args)]               
