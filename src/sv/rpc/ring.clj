@@ -2,6 +2,18 @@
   (:require [ring.util.response :as resp]
             [ring.middleware.format :as format]))
 
+(defn default-exception-handler [context]
+  (let [{:keys [args msg e]} context]
+    (-> (cond-> {:error {:message (.getMessage e)
+                         :fn (:fn msg)
+                         :args args
+                         :class (.getClass e)}
+                 :cause :rpc/fn-exception}
+          (instance? clojure.lang.ExceptionInfo e)
+          (assoc :ex-data (ex-data e)))
+        (resp/response)
+        (resp/status 500))))
+
 (defn rpc-handler
   [config]
   (fn [request]
@@ -14,15 +26,12 @@
               (let [result (apply f args)]               
                 (resp/response {:result result}))
               (catch Exception e
-                (-> (cond-> {:error {:message (.getMessage e)
-                                     :fn (:fn msg)
-                                     :args args
-                                     :class (.getClass e)}
-                             :cause :rpc/fn-exception}
-                      (instance? clojure.lang.ExceptionInfo e)
-                      (assoc :ex-data (ex-data e)))
-                    (resp/response)
-                    (resp/status 500)))))
+                (if-let [exception-handler (:exception-handler config)]
+                  (exception-handler
+                   {:args args
+                    :e e
+                    :msg msg})
+                  (throw e)))))
           ;; get-rpc-fn can return a ring response map (for signaling
           ;; errors etc.)
           f)
@@ -39,8 +48,11 @@
                (= (:uri request) (:path config "/rpc")))
       (handler request))))
 
+(def default-config
+  {:exception-handler default-exception-handler})
+
 (defn ring-handler [config]
-  (let [handler (rpc-handler config)]
+  (let [handler (rpc-handler (merge default-config config))]
     (-> handler
         (route config)
         (format/wrap-restful-format         
