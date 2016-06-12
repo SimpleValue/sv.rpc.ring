@@ -1,4 +1,4 @@
-(defproject sv.rpc/ring "0.2.0-SNAPSHOT"
+(defproject sv.rpc/ring "0.2.0"
   :description "Provides remote procedure calls via Ring."
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
