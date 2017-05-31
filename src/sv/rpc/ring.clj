@@ -19,7 +19,16 @@
   (fn [request]
     (let [msg (:params request)
           get-rpc-fn (:get-rpc-fn config)]
-      (if-let [f (get-rpc-fn msg)]
+      (if-let [f (get-rpc-fn
+                  (assoc
+                   msg
+                   ;; some rpc functions might need metadata about the
+                   ;; call (like the :headers from the
+                   ;; :ring/request). Therefore the get-rpc-fn is
+                   ;; provided with the metadata here, so that it can
+                   ;; pass it to a rpc function if needed:
+                   :metadata
+                   {:ring/request request}))]
         (if (or (fn? f) (and (var? f) (fn? (var-get f))))
           (let [args (:args msg)]
             (try
